@@ -4,42 +4,44 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 // TODO: Auto-generated Javadoc
+
 /**
  * The Class Space.
  */
 public class Space {
 
     private static final Vector3 TEMP_LENGTH = new Vector3();
-    /** The Constant LEFT. */
     private static final int LEFT = 0;
-    /** The Constant RIGHT. */
     private static final int RIGHT = 1;
-    /** The Constant CENTER. */
     private static final int CENTER = 2;
-    
-    private static HashMap<Vector3,Vector3> lenghts = new HashMap<Vector3,Vector3>();
-    public static int LENS = 0;
+    private static HashMap<Vector3, Vector3> lengths = new HashMap<Vector3, Vector3>();
+    private static int LENS = 0;
+
+    private float minSize;
+    private Node root;
 
     private static Vector3 recycle(final Vector3 v) {
-        Vector3 r = lenghts.get(v);
+        Vector3 r = lengths.get(v);
         if (r == null) {
             r = new Vector3(v);
-            lenghts.put(r, r);
+            lengths.put(r, r);
             ++LENS;
         }
         return r;
-
     }
 
-    private float minSize;
 
     /**
      * The Class Node.
      */
     public class Node extends BoundingBox {
-        /** The container. */
+        /**
+         * The container.
+         */
         private ArrayList<Object> container;
-        /** The parent. */
+        /**
+         * The parent.
+         */
         private Node parent, left, right, center;
 
         /**
@@ -53,12 +55,9 @@ public class Space {
         /**
          * Instantiates a new space node.
          *
-         * @param parent
-         *            the parent
-         * @param min
-         *            the min
-         * @param len
-         *            the len
+         * @param parent the parent
+         * @param min    the min
+         * @param len    the len
          */
         private Node(Node parent, Vector3 min, Vector3 len) {
             super(min, len);
@@ -68,87 +67,69 @@ public class Space {
         /**
          * Instantiates a new space node.
          *
-         * @param node
-         *            the node
-         * @param i
-         *            the i
-         * @param min
-         *            the min
-         * @param len
-         *            the len
+         * @param node the node
+         * @param i    the i
+         * @param min  the min
+         * @param len  the len
          */
         private Node(Node node, int i, Vector3 min, Vector3 len) {
             super(min, len);
             switch (i) {
-            case LEFT:
-                left = node;
-                break;
-            case CENTER:
-                center = node;
-                break;
-            case RIGHT:
-                right = node;
-                break;
-            default:
-                break;
+                case LEFT:
+                    left = node;
+                    break;
+                case CENTER:
+                    center = node;
+                    break;
+                case RIGHT:
+                    right = node;
+                    break;
+                default:
+                    break;
             }
 
             node.parent = this;
         }
 
+        private int getIndex(float value, float length, float radius) {
+            if (value >= radius) {
+                return LEFT;
+            } else if (-value >= radius) {
+                return RIGHT;
+            } else if (Math.abs(value) + radius <= length * .25f) {
+                return CENTER;
+            }
+            return -1;
+        }
+
         /**
          * Contains index.
          *
-         * @param sphere
-         *            the sphere
+         * @param sphere the sphere
          * @return the int
          */
-        private int containsIndex(final BoundingSphere sphere) {
+        private int getContainingNodeIndex(final BoundingSphere sphere) {
             final float sr = sphere.getRadius();
             final float lenX = getLengthX();
             final float lenY = getLengthY();
             final float lenZ = getLengthZ();
 
-            // skip 4 main planes for each child
-
-            // if(onlyContains(sphere)){
             if (lenX >= lenY && lenX >= lenZ) {
                 final float dist = getCenterX() - sphere.getX();
-                if (dist >= sr) {
-                    return LEFT;
-                } else if (-dist >= sr) {
-                    return RIGHT;
-                } else if (Math.abs(dist) + sr <= lenX * .25f) {
-                    return CENTER;
-                }
+                return getIndex(dist, lenX, sr);
             } else if (lenY >= lenZ) {
                 final float dist = getCenterY() - sphere.getY();
-                if (dist >= sr) {
-                    return LEFT;
-                } else if (-dist >= sr) {
-                    return RIGHT;
-                } else if (Math.abs(dist) + sr <= lenY * .25f) {
-                    return CENTER;
-                }
+                return getIndex(dist, lenY, sr);
             } else {
                 final float dist = getCenterZ() - sphere.getZ();
-                if (dist >= sr) {
-                    return LEFT;
-                } else if (-dist >= sr) {
-                    return RIGHT;
-                } else if (Math.abs(dist) + sr <= lenZ * .25f) {
-                    return CENTER;
-                }
+                return getIndex(dist, lenZ, sr);
             }
-            // }
-            return -1;
         }
 
         /**
          * Container add.
          *
-         * @param obj
-         *            the obj
+         * @param obj the obj
          */
         private void containerAdd(final Object obj) {
             if (container == null)
@@ -160,8 +141,7 @@ public class Space {
         /**
          * Container remove.
          *
-         * @param obj
-         *            the obj
+         * @param obj the obj
          */
         private void containerRemove(final Object obj) {
             if (container != null) {
@@ -190,7 +170,7 @@ public class Space {
 
         /*
          * (non-Javadoc)
-         * 
+         *
          * @see com.enter4ward.math.BoundingBox#toString()
          */
         public String toString() {
@@ -200,8 +180,7 @@ public class Space {
         /**
          * Builds the.
          *
-         * @param i
-         *            the i
+         * @param i the i
          * @return the space node
          */
 
@@ -255,30 +234,29 @@ public class Space {
         /**
          * Gets the child.
          *
-         * @param i
-         *            the i
+         * @param i the i
          * @return the child
          */
         private Node getChild(int i) {
 
             switch (i) {
-            case LEFT:
-                if (left == null) {
-                    left = build(i);
-                }
-                return left;
-            case CENTER:
-                if (center == null) {
-                    center = build(i);
-                }
-                return center;
-            case RIGHT:
-                if (right == null) {
-                    right = build(i);
-                }
-                return right;
-            default:
-                break;
+                case LEFT:
+                    if (left == null) {
+                        left = build(i);
+                    }
+                    return left;
+                case CENTER:
+                    if (center == null) {
+                        center = build(i);
+                    }
+                    return center;
+                case RIGHT:
+                    if (right == null) {
+                        right = build(i);
+                    }
+                    return right;
+                default:
+                    break;
             }
             return null;
 
@@ -287,20 +265,19 @@ public class Space {
         /**
          * Child.
          *
-         * @param i
-         *            the i
+         * @param i the i
          * @return the node
          */
         private Node child(int i) {
             switch (i) {
-            case LEFT:
-                return left;
-            case CENTER:
-                return center;
-            case RIGHT:
-                return right;
-            default:
-                break;
+                case LEFT:
+                    return left;
+                case CENTER:
+                    return center;
+                case RIGHT:
+                    return right;
+                default:
+                    break;
             }
             return null;
 
@@ -309,8 +286,7 @@ public class Space {
         /**
          * Expand.
          *
-         * @param obj
-         *            the obj
+         * @param obj the obj
          * @return the space node
          */
         private Node expandAux(final BoundingSphere obj) {
@@ -363,20 +339,18 @@ public class Space {
             // return false;
 
             return left != null || right != null || center != null
-                    || getLengthX() > minSize|| getLengthY() > minSize|| getLengthZ() > minSize;
+                    || getLengthX() > minSize || getLengthY() > minSize || getLengthZ() > minSize;
         }
 
 
         /**
          * Iterate.
          *
-         * @param frustum
-         *            the frustum
-         * @param handler
-         *            the handler
+         * @param frustum the frustum
+         * @param handler the handler
          */
         private void handleVisibleObjects(final BoundingFrustum frustum,
-                final VisibleObjectHandler handler) {
+                                          final VisibleObjectHandler handler) {
 
             handler.onObjectVisible(this);
             if (container != null) {
@@ -401,15 +375,14 @@ public class Space {
         /**
          * Removes the.
          *
-         * @param obj
-         *            the obj
+         * @param obj the obj
          */
         protected void remove(final Object obj) {
             containerRemove(obj);
 
             Node node = this;
             while (node != null) {
-                node.clearChild();
+                node.clearChildren();
                 node = node.parent;
             }
         }
@@ -417,7 +390,7 @@ public class Space {
         /**
          * Clear child.
          */
-        protected void clearChild() {
+        protected void clearChildren() {
 
             if (left != null && left.isEmpty()) {
                 left = null;
@@ -436,36 +409,32 @@ public class Space {
         /**
          * Update.
          *
-         * @param sph
-         *            the sph
+         * @param sph the sph
          * @return the node
          */
-        private Node update(BoundingSphere sph) {
+        private Node getBestParentNode(BoundingSphere sph) {
             Node node = this;
             while (node != null) {
-                node.clearChild();
-
-                if (node.onlyContains(sph)) {
+                node.clearChildren();
+                if (node.containsSphere(sph)) {
                     break;
                 } else {
                     node = node.parent;
                 }
             }
-
             return node;
         }
 
         /**
          * Expand.
          *
-         * @param obj
-         *            the obj
+         * @param obj the obj
          * @return the node
          */
         private Node expand(final BoundingSphere obj) {
             Node node = this;
-            while (!node.onlyContains(obj)) {
-                node.clearChild();
+            while (!node.containsSphere(obj)) {
+                node.clearChildren();
                 node = node.expandAux(obj);
             }
             return node;
@@ -474,13 +443,11 @@ public class Space {
         /**
          * Iterate.
          *
-         * @param sph
-         *            the sph
-         * @param handler
-         *            the handler
+         * @param sph     the sph
+         * @param handler the handler
          */
         private void handleObjectCollisions(final BoundingSphere sph,
-                final ObjectCollisionHandler handler) {
+                                            final ObjectCollisionHandler handler) {
             if (container != null) {
                 for (Object obj : container) {
                     handler.onObjectCollision(obj);
@@ -501,17 +468,16 @@ public class Space {
         /**
          * Insert.
          *
-         * @param sph
-         *            the sph
+         * @param sph the sph
          * @return the space node
          */
-        private Node insert(final BoundingSphere sph) {
+        private Node getBestChildNode(final BoundingSphere sph) {
             Node node = this;
 
             // insertion
             while (true) {
                 if (node.canSplit()) {
-                    int i = node.containsIndex(sph);
+                    int i = node.getContainingNodeIndex(sph);
                     if (i < 0) {
                         break;
                     }
@@ -527,23 +493,20 @@ public class Space {
         /**
          * Handle ray collisions.
          *
-         * @param space
-         *            the space
-         * @param ray
-         *            the ray
-         * @param handler
-         *            the handler
+         * @param space   the space
+         * @param ray     the ray
+         * @param handler the handler
          */
         private IntersectionInfo handleRayCollisions(final Space space, final Ray ray,
-                final RayCollisionHandler handler) {
+                                                     final RayCollisionHandler handler) {
             final float len = ray.getDirection().length();
             IntersectionInfo result = null;
             if (container != null) {
                 for (Object obj : container) {
-                	IntersectionInfo r = handler.onObjectCollision(space, ray, obj);
-                	if(r!=null && (result==null ||  r.distance<result.distance)){
-                		result = r;
-                	}
+                    IntersectionInfo r = handler.onObjectCollision(space, ray, obj);
+                    if (r != null && (result == null || r.distance < result.distance)) {
+                        result = r;
+                    }
                 }
             }
             int intersections = 0;
@@ -552,16 +515,16 @@ public class Space {
                 Float idist = null;
                 if (node != null
                         && (intersections == 2
-                                || node.contains(ray.getPosition()) != ContainmentType.Disjoint || ((idist = ray
-                                .intersects(node)) != null && idist <= len))) {
+                        || node.contains(ray.getPosition()) != ContainmentType.Disjoint || ((idist = ray
+                        .intersects(node)) != null && idist <= len))) {
                     ++intersections;
                     if (idist == null) {
                         idist = 0f;
                     }
                     IntersectionInfo r = node.handleRayCollisions(space, ray, handler);
-                    if(r!=null && (result==null ||  r.distance <result.distance)){
-                		result = r;
-                	}
+                    if (r != null && (result == null || r.distance < result.distance)) {
+                        result = r;
+                    }
                 }
             }
             return result;
@@ -630,43 +593,6 @@ public class Space {
          */
     }
 
-
-
-    /**
-     * Handle object collisions.
-     *
-     * @param sphere
-     *            the sphere
-     * @param handler
-     *            the handler
-     */
-    public void handleObjectCollisions(final BoundingSphere sphere,
-            final ObjectCollisionHandler handler) {
-        if (root != null) {
-            root.handleObjectCollisions(sphere, handler);
-        }
-    }
-
-    /**
-     * Handle ray collisions.
-     *
-     * @param ray
-     *            the ray
-     * @param handler
-     *            the handler
-     */
-    public IntersectionInfo handleRayCollisions(final Ray ray,
-            final RayCollisionHandler handler) {
-        // System.out.println(handler+":"+ ray);
-        if (root != null) {
-            return root.handleRayCollisions(this, ray, handler);
-        }
-        return null;
-    }
-
-    /** The root. */
-    private Node root;
-
     /**
      * Instantiates a new space.
      */
@@ -675,63 +601,48 @@ public class Space {
         root = new Node();
     }
 
-    /**
-     * Update.
-     *
-     * @param sph
-     *            the sph
-     * @param node
-     *            the node
-     * @param obj
-     *            the obj
-     * @return the space node
-     */
-    public Node update(final BoundingSphere sph, Node node, final Object obj) {
-        if (!node.onlyContains(sph)) {
-            node.containerRemove(obj);
-            node.clearChild();
-            node = node.parent;
-            if (node != null)
-                node = node.update(sph);
+    public Node insert(final BoundingSphere sph, final Object obj) {
+        root = root.expand(sph);
+        final Node node = root.getBestChildNode(sph);
+        node.containerAdd(obj);
+        root = root.compress();
+        return node;
+    }
 
+    public Node update(final BoundingSphere sph, Node node, final Object obj) {
+        if (!node.containsSphere(sph)) {
+            node.containerRemove(obj);
+            node = node.getBestParentNode(sph);
             if (node == null) {
                 node = root = root.expand(sph);
             }
-            node = node.insert(sph);
+            node = node.getBestChildNode(sph);
             node.containerAdd(obj);
             root = root.compress();
         }
         return node;
     }
-    /**
-     * Iterate.
-     *
-     * @param frustum
-     *            the frustum
-     * @param handler
-     *            the handler
-     */
+
     public void handleVisibleObjects(BoundingFrustum frustum,
-            VisibleObjectHandler handler) {
+                                     VisibleObjectHandler handler) {
         if (root != null) {
             root.handleVisibleObjects(frustum, handler);
         }
     }
-    /**
-     * Insert.
-     *
-     * @param sph
-     *            the sph
-     * @param obj
-     *            the obj
-     * @return the space node
-     */
-    public Node insert(final BoundingSphere sph, final Object obj) {
-        root = root.expand(sph);
-        final Node node = root.insert(sph);
-        node.containerAdd(obj);
-        root = root.compress();
-        return node;
+
+    public void handleObjectCollisions(final BoundingSphere sphere,
+                                       final ObjectCollisionHandler handler) {
+        if (root != null) {
+            root.handleObjectCollisions(sphere, handler);
+        }
+    }
+
+    public IntersectionInfo handleRayCollisions(final Ray ray,
+                                                final RayCollisionHandler handler) {
+        if (root != null) {
+            return root.handleRayCollisions(this, ray, handler);
+        }
+        return null;
     }
 
 

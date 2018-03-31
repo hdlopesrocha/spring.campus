@@ -15,8 +15,9 @@ import static org.lwjgl.opengl.GL20.glUseProgram;
 
 public class Main extends Game {
 
-    private static final int NUMBER_OF_OBJECTS = 0;
-  //  private static final int NUMBER_OF_OBJECTS = 500000;
+    //private static final int NUMBER_OF_OBJECTS = 0;
+    private static final int NUMBER_OF_OBJECTS = 500000;
+    //private static final int NUMBER_OF_OBJECTS = 10000000;
     /**
      * The buffer builder.
      */
@@ -27,7 +28,6 @@ public class Main extends Game {
     Object3D box;
     Object hit;
     List<Object> tests = new ArrayList<>();
-
 
     private static final Random RANDOM = new Random();
 
@@ -148,7 +148,7 @@ public class Main extends Game {
 
             if (obj instanceof Space.Node) {
                 Space.Node node = (Space.Node) obj;
-                if (node.containerSize() > 0) {
+                if (node.containerSize() > 0 && node.contains(box)) {
                     getProgram().setAmbientColor(0f, 1f, 0f);
                 } else {
                     return;

@@ -285,7 +285,7 @@ public class BoundingBox {
      *            the sphere
      * @return true, if successful
      */
-    public boolean onlyContains(final BoundingSphere sphere) {
+    public boolean containsSphere(final BoundingSphere sphere) {
         final float sx = sphere.getX();
         final float sy = sphere.getY();
         final float sz = sphere.getZ();
