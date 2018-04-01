@@ -23,6 +23,7 @@ public abstract class Game {
 
 	// Shader variables
 	private ShaderProgram program;
+	public static boolean[] keys = new boolean[65536];
 
 	public ShaderProgram getProgram() {
 		return program;
@@ -80,6 +81,7 @@ public abstract class Game {
 		glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
 			if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
 				glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
+			keys[key] = action != GLFW_RELEASE;
 		});
 
 		// Get the thread stack and push a new frame
@@ -122,7 +124,6 @@ public abstract class Game {
 			e.printStackTrace();
 		}
 
-		// Setup an XNA like background color
 		glClearColor(0.2f, 0.2f, 0.2f, 0f);
 		glViewport(0, 0, width, height);
 		glEnable(GL_DEPTH_TEST); // Enables Depth Testing
@@ -167,4 +168,7 @@ public abstract class Game {
 
 	}
 
+	public boolean isKeyDown(int key){
+		return keys[key];
+	}
 }

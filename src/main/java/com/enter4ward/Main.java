@@ -2,6 +2,7 @@ package com.enter4ward;
 
 import com.enter4ward.lwjgl.*;
 import com.enter4ward.math.*;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 
 import java.io.FileNotFoundException;
@@ -9,25 +10,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static org.lwjgl.opengl.GL11.glClear;
+import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.glUseProgram;
 
 
 public class Main extends Game {
 
     //private static final int NUMBER_OF_OBJECTS = 0;
-    private static final int NUMBER_OF_OBJECTS = 500000;
-    //private static final int NUMBER_OF_OBJECTS = 10000000;
+    //private static final int NUMBER_OF_OBJECTS = 500000;
+    private static final int NUMBER_OF_OBJECTS = 1000000;
     /**
      * The buffer builder.
      */
     private static IBufferBuilder bufferBuilder = () -> new BufferObject(true);
-
     DrawableSphere sphere;
     LWJGLModel3D boxModel;
     Object3D box;
     Object hit;
     List<Object> tests = new ArrayList<>();
+    boolean hyperCubeMode = false;
+    boolean boundingSpeheres = false;
 
     private static final Random RANDOM = new Random();
 
@@ -88,8 +90,8 @@ public class Main extends Game {
             space.insert(getBoundingSphere(), this);
         }};
 
-        for(int i=0; i < NUMBER_OF_OBJECTS; ++i ){
-            new Object3D(new Vector3((RANDOM.nextFloat()-0.5f)*MAP_SIZE, (RANDOM.nextFloat()-0.5f)*MAP_SIZE,(RANDOM.nextFloat()-0.5f)*MAP_SIZE), boxModel) {{
+        for (int i = 0; i < NUMBER_OF_OBJECTS; ++i) {
+            new Object3D(new Vector3((RANDOM.nextFloat() - 0.5f) * MAP_SIZE, (RANDOM.nextFloat() - 0.5f) * MAP_SIZE, (RANDOM.nextFloat() - 0.5f) * MAP_SIZE), boxModel) {{
                 space.insert(getBoundingSphere(), this);
             }};
         }
@@ -110,8 +112,8 @@ public class Main extends Game {
         getProgram().setTime(time);
         getProgram().update(camera);
 
-
-        box.setPosition(new Vector3(DISTANCE * (float) Math.sin(SPEED * time), 0f, DISTANCE * (float) Math.cos(SPEED * time)));
+        Vector3 boxPos = new Vector3(DISTANCE * (float) Math.sin(SPEED * time), 0f, DISTANCE * (float) Math.cos(SPEED * time));
+        box.setPosition(boxPos);
         box.setNode(space.update(box.getBoundingSphere(), box.getNode(), box));
         tests = new ArrayList<>();
         hit = null;
@@ -122,20 +124,68 @@ public class Main extends Game {
 
             if (box != o3d && boxSphere.intersects(o3d.getBoundingSphere())) {
                 hit = o3d;
-            }
-            else {
+            } else {
                 tests.add(o3d);
             }
         });
 
+        // moving.insert(space);
+        float tSense = 0.2f;
+        float rSense = 0.01f;
+
+        if (isKeyDown(GLFW.GLFW_KEY_LEFT)) {
+            camera.rotate(0, 1, 0, -rSense);
+        }
+        if (isKeyDown(GLFW.GLFW_KEY_RIGHT)) {
+            camera.rotate(0, 1, 0, rSense);
+        }
+        if (isKeyDown(GLFW.GLFW_KEY_UP)) {
+            camera.rotate(1, 0, 0, -rSense);
+        }
+        if (isKeyDown(GLFW.GLFW_KEY_DOWN)) {
+            camera.rotate(1, 0, 0, rSense);
+        }
+
+
+        if (isKeyDown(GLFW.GLFW_KEY_Q)) {
+            camera.rotate(0, 0, 1, -rSense);
+        }
+
+        if (isKeyDown(GLFW.GLFW_KEY_E)) {
+            camera.rotate(0, 0, 1, rSense);
+        }
+
+        if (isKeyDown(GLFW.GLFW_KEY_W)) {
+            camera.move(tSense, 0, 0);
+        }
+
+        if (isKeyDown(GLFW.GLFW_KEY_S)) {
+            camera.move(-tSense, 0, 0);
+        }
+
+        if (isKeyDown(GLFW.GLFW_KEY_A)) {
+            camera.move(0, 0, tSense);
+        }
+
+        if (isKeyDown(GLFW.GLFW_KEY_D)) {
+            camera.move(0, 0, -tSense);
+        }
+
+        if (isKeyDown(GLFW.GLFW_KEY_H)) {
+            this.hyperCubeMode = !this.hyperCubeMode;
+        }
+
+        if (isKeyDown(GLFW.GLFW_KEY_B)) {
+            this.boundingSpeheres = !this.boundingSpeheres;
+        }
     }
 
     @Override
     public void draw() {
         camera.update();
 
-        getProgram().setModelMatrix(Matrix.IDENTITY);
-        getProgram().setLightPosition(0, new Vector3(0, 32, 0));
+        getProgram().update(camera);
+        getProgram().setLightPosition(0, box.getPosition());
         getProgram().use();
         glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 
@@ -161,19 +211,20 @@ public class Main extends Game {
                 Object3D obj3d = (Object3D) obj;
                 if (obj3d == hit) {
                     getProgram().setAmbientColor(1f, 0f, 0f);
-                }
-                else if (obj3d == box) {
+                } else if (obj3d == box) {
                     getProgram().setAmbientColor(0f, 0f, 1f);
-                }
-                else if(tests.contains(obj3d)){
+                } else if (tests.contains(obj3d)) {
                     getProgram().setAmbientColor(1f, 1f, 0f);
                 }
 
                 obj3d.draw(getProgram(), camera);
+                if(boundingSpeheres) {
+                    getProgram().setOpaque(false);
 
-                getProgram().setOpaque(false);
-                sphere.draw(getProgram(), obj3d.getBoundingSphere());
-
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                    sphere.draw(getProgram(), obj3d.getBoundingSphere());
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                }
             }
         });
 
@@ -188,11 +239,27 @@ public class Main extends Game {
                 } else {
                     return;
                 }
-                Vector3 min = new Vector3(node.getMinX(), node.getMinY(), node.getMinZ());
-                Vector3 max = new Vector3(node.getMaxX(), node.getMaxY(), node.getMaxZ());
-                cubeModel.draw(getProgram(), min, max);
+
+                if (hyperCubeMode) {
+
+                    Vector3 min = new Vector3(node.getMinX(), node.getMinY(), node.getMinZ());
+                    float shiftX = (float) (Math.sin(node.getMaxX()) * Math.sin(time + node.getMaxX()));
+                    float shiftY = (float) (Math.cos(node.getMaxY()) * Math.sin(time + node.getMaxY()));
+                    float shiftZ = (float) (Math.cos(node.getMaxZ()) * Math.cos(time + node.getMaxZ()));
+
+                    Vector3 max = new Vector3(
+                            node.getMaxX() + shiftX,
+                            node.getMaxY() + shiftY,
+                            node.getMaxZ() + shiftZ);
+                    cubeModel.draw(getProgram(), min, max);
+                } else {
+                    Vector3 min = new Vector3(node.getMinX(), node.getMinY(), node.getMinZ());
+                    Vector3 max = new Vector3(node.getMaxX(), node.getMaxY(), node.getMaxZ());
+                    cubeModel.draw(getProgram(), min, max);
+                }
             }
         });
+
 
         getProgram().setAmbientColor(0f, 0f, 0f);
         glUseProgram(0);
